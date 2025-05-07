@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tsiyon Resume Parser</title>
+    <style>
+        .upload-container {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 2rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ef9a9a;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>Tsiyon Resume Parser</h1>
+        <form id="resumeForm" method="POST" enctype="multipart/form-data" action="/upload_resume/">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="resumeFile">Select Resume (PDF/DOC/DOCX, max 5MB):</label>
+                <input type="file" id="resumeFile" name="file" accept=".pdf,.doc,.docx" required>
+            </div>
+            <button type="submit">Upload Resume</button>
+            <div id="message" class="message"></div>
+        </form>
+    </div>
+
+    <script>
+        // Function to get CSRF token from cookies
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Form submission handler
+        document.getElementById('resumeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const messageDiv = document.getElementById('message');
+            
+            // Clear previous messages
+            messageDiv.textContent = '';
+            messageDiv.className = 'message';
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCSRFToken(),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.textContent = 'Resume uploaded successfully!';
+                    messageDiv.className = 'message success';
+                    form.reset();  // Reset the form after successful upload
+                } else {
+                    messageDiv.textContent = data.error || 'Upload failed. Please try again.';
+                    messageDiv.className = 'message error';
+                }
+            } catch (error) {
+                messageDiv.textContent = 'Network error occurred. Please check your connection.';
+                messageDiv.className = 'message error';
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
